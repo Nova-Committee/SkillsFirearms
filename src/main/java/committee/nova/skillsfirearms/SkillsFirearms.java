@@ -33,7 +33,7 @@ import java.util.*;
 import java.util.function.Function;
 
 @Mod(modid = SkillsFirearms.MODID, useMetadata = true, guiFactory = "committee.nova.skillsfirearms.GuiFactory",
-        dependencies = "required-after:skillful@[0.0.3.5,)")
+        dependencies = "required-after:skillful@[0.0.3.6,)")
 public class SkillsFirearms {
     public static final String MODID = "skillsfirearms";
     private static Logger LOGGER;
@@ -148,9 +148,8 @@ public class SkillsFirearms {
         final int oldLevel = old.getCurrentLevel();
         if (!(firearm.getCurrentLevel() < oldLevel || (firearm.getCurrentLevel() == oldLevel && firearm.getCurrentXp() < old.getCurrentXp())))
             return;
-        while (firearm.getCurrentLevel() < oldLevel)
-            firearm.addXp(player, firearm.skill().getLevelRequiredXp(firearm.getCurrentLevel()));
-        firearm.addXp(player, Math.max(0, old.getCurrentXp() - firearm.getCurrentXp()));
+        firearm.changeLevel(player, oldLevel);
+        firearm.addXp(player, Math.max(0, old.getCurrentXp()));
         Utilities.removePlayerSkill(player, FA_OLD);
     }
 

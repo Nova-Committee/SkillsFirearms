@@ -18,7 +18,7 @@ apply plugin: 'net.minecraftforge.gradle'
 
 
 group = 'committee.nova'
-version = '1.1.0'
+version = '1.1.1'
 def mcVersion = "1.12.2"
 
 java {
@@ -105,7 +105,7 @@ dependencies {
     // that the dep is a ForgeGradle 'patcher' dependency, and its patches will be applied.
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2860'
-    implementation("committee.nova:skillful:0.0.3.5.0")
+    implementation("committee.nova:skillful:0.0.3.6")
     compileOnly fg.deobf("curse.maven:obfuscate-289380:2912288")
     //implementation fg.deobf("curse.maven:mrcrayfishs-gun-mod-289479:2854400")
     //implementation fg.deobf("curse.maven:vics-modern-warfare-mod-243788:4415481")
