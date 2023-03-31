@@ -103,35 +103,21 @@ public class SkillsFirearms {
             LOGGER.info("Try registering PUBGMC compatibility");
             try {
                 final Class<?> pubg = Class.forName(PUBG);
-                //final Method p = pubg.getDeclaredMethod("getShooter");
-                //p.setAccessible(true);
-                //strategies.put(PUBG, e -> {
-                //    try {
-                //        return (Entity) p.invoke(e);
-                //    } catch (IllegalAccessException | InvocationTargetException ex) {
-                //        ex.printStackTrace();
-                //    }
-                //    return null;
-                //});
-                SUPPORTED.add(pubg);
-                // Toma's code seemed to have something wrong
-                final Class<? extends EntityDamageSourceIndirect> GUN = (Class<? extends EntityDamageSourceIndirect>)
-                        Class.forName("dev.toma.pubgmc.init.DamageSourceGun");
-                PUBG_COMPAT = d -> {
-                    if (GUN.isAssignableFrom(d.getClass())) try {
-                        final Entity e = GUN.cast(d).getTrueSource();
-                        if (!(e instanceof EntityPlayerMP)) return null;
-                        return (EntityPlayerMP) e;
-                    } catch (ClassCastException e) {
-                        return null;
+                final Method p = pubg.getDeclaredMethod("getShooter");
+                p.setAccessible(true);
+                strategies.put(PUBG, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        ex.printStackTrace();
                     }
                     return null;
-                };
+                });
+                SUPPORTED.add(pubg);
+                final Class<? extends EntityDamageSourceIndirect> GUN = (Class<? extends EntityDamageSourceIndirect>)
+                        Class.forName("dev.toma.pubgmc.init.DamageSourceGun");
                 LOGGER.info("Successfully registered PUBGMC compatibility!");
-                //} catch (ClassNotFoundException | NoSuchMethodException ignored) {
-                //    LOGGER.error("Failed to register PUBGMC compatibility...");
-                //}
-            } catch (ClassNotFoundException ignored) {
+            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
                 LOGGER.error("Failed to register PUBGMC compatibility...");
             }
         }
@@ -163,8 +149,8 @@ public class SkillsFirearms {
         if (!(event.getSource() instanceof EntityDamageSourceIndirect)) return;
         final EntityDamageSourceIndirect s = (EntityDamageSourceIndirect) event.getSource();
         if (!(s.getTrueSource() instanceof EntityPlayerMP)) return;
-        final EntityPlayerMP player = checkNotSupported(s.getImmediateSource()) ? PUBG_COMPAT.apply(s) : (EntityPlayerMP) s.getTrueSource();
-        if (player == null) return;
+        if (checkNotSupported(s.getImmediateSource())) return;
+        final EntityPlayerMP player = (EntityPlayerMP) s.getTrueSource();
         final SkillInstance firearm = Utilities.getPlayerSkillStat(player, FIREARM);
         event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getCurrentLevel() - 10.0F) / 50.0F)));
         final EntityLivingBase target = event.getEntityLiving();
@@ -176,8 +162,8 @@ public class SkillsFirearms {
         if (!(event.getSource() instanceof EntityDamageSourceIndirect)) return;
         final EntityDamageSourceIndirect s = (EntityDamageSourceIndirect) event.getSource();
         if (!(s.getTrueSource() instanceof EntityPlayerMP)) return;
-        final EntityPlayerMP player = checkNotSupported(s.getImmediateSource()) ? PUBG_COMPAT.apply(s) : (EntityPlayerMP) s.getTrueSource();
-        if (player == null) return;
+        if (checkNotSupported(s.getImmediateSource())) return;
+        final EntityPlayerMP player = (EntityPlayerMP) s.getTrueSource();
         Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, 5 + (int) (event.getEntityLiving().getMaxHealth() / 20.0));
     }
 
