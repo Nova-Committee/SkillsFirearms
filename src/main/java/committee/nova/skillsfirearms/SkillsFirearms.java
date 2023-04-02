@@ -33,7 +33,7 @@ import java.util.*;
 import java.util.function.Function;
 
 @Mod(modid = SkillsFirearms.MODID, useMetadata = true, guiFactory = "committee.nova.skillsfirearms.GuiFactory",
-        dependencies = "required-after:skillful@[0.0.3.6,)")
+        dependencies = "required-after:skillful@[0.0.3.6,)", acceptableRemoteVersions = "*")
 public class SkillsFirearms {
     public static final String MODID = "skillsfirearms";
     private static Logger LOGGER;
