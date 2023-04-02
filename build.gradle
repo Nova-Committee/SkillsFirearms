@@ -18,7 +18,7 @@ apply plugin: 'net.minecraftforge.gradle'
 
 
 group = 'committee.nova'
-version = '1.1.2'
+version = '1.1.3'
 def mcVersion = "1.12.2"
 
 java {
@@ -98,6 +98,9 @@ repositories {
             includeGroup "curse.maven"
         }
     }
+    flatDir {
+        dir 'libs'
+    }
 }
 
 dependencies {
@@ -111,6 +114,7 @@ dependencies {
     //implementation fg.deobf("curse.maven:vics-modern-warfare-mod-243788:4415481")
     implementation fg.deobf("curse.maven:configuration-444699:3241921")
     implementation fg.deobf("curse.maven:pubgmc-mod-297074:3285714")
+    implementation fg.deobf("gvclib:gvclib:5.4.2")
     // Real mod deobf dependency examples - these get remapped to your current mappings
     // compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api") // Adds JEI API as a compile dependency
     // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}") // Adds the full JEI mod as a runtime dependency

@@ -43,9 +43,9 @@ public class SkillsFirearms {
     private static final String CGM = "com.mrcrayfish.guns.entity.EntityProjectile";
     private static final String MW = "com.vicmatskiv.weaponlib.EntityProjectile";
     private static final String PUBG = "dev.toma.pubgmc.common.entity.EntityBullet";
+    private static final String GVC = "gvclib.entity.EntityBBase";
 
     private static final Set<Class<?>> SUPPORTED = new HashSet<>();
-    private static Function<EntityDamageSourceIndirect, EntityPlayerMP> PUBG_COMPAT = e -> null;
 
     private static final ResourceLocation FA_OLD = new ResourceLocation("skillscgm", "firearm");
     public static final ISkill FIREARM = new Skill(new ResourceLocation(MODID, "firearm"), 100, BossInfo.Color.BLUE, (int i) -> i * 200);
@@ -57,7 +57,6 @@ public class SkillsFirearms {
     }
 
     @EventHandler
-    @SuppressWarnings("unchecked")
     public void postInit(FMLPostInitializationEvent event) {
         if (CompatConfig.cgm) {
             LOGGER.info("Try registering cgm compatibility");
@@ -114,11 +113,29 @@ public class SkillsFirearms {
                     return null;
                 });
                 SUPPORTED.add(pubg);
-                final Class<? extends EntityDamageSourceIndirect> GUN = (Class<? extends EntityDamageSourceIndirect>)
-                        Class.forName("dev.toma.pubgmc.init.DamageSourceGun");
                 LOGGER.info("Successfully registered PUBGMC compatibility!");
             } catch (ClassNotFoundException | NoSuchMethodException ignored) {
                 LOGGER.error("Failed to register PUBGMC compatibility...");
+            }
+        }
+        if (CompatConfig.gvc) {
+            LOGGER.info("Try registering compatibility for GVCLib dependents");
+            try {
+                final Class<?> gvc = Class.forName(GVC);
+                final Method p = gvc.getDeclaredMethod("getThrower");
+                p.setAccessible(true);
+                strategies.put(GVC, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                SUPPORTED.add(gvc);
+                LOGGER.info("Successfully registered compatibility for GVCLib dependents!");
+            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+                LOGGER.error("Failed to register compatibility for GVCLib dependents...");
             }
         }
     }
@@ -209,5 +226,9 @@ public class SkillsFirearms {
         @Config.Comment("Enable compat for PUBGMC")
         @Config.RequiresMcRestart
         public static boolean pubg = true;
+
+        @Config.Comment("Enable compat for GVBLib dependents")
+        @Config.RequiresMcRestart
+        public static boolean gvc = true;
     }
 }
