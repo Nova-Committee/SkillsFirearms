@@ -1,5 +1,6 @@
-package committee.nova.skillsfirearms;
+package committee.nova.skillsfirearms.client.gui;
 
+import committee.nova.skillsfirearms.SkillsFirearms;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.common.config.ConfigElement;

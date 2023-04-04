@@ -10,6 +10,8 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.EntityDamageSource;
 import net.minecraft.util.EntityDamageSourceIndirect;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.BossInfo;
@@ -27,25 +29,33 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import org.apache.logging.log4j.Logger;
 import scala.Option;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-@Mod(modid = SkillsFirearms.MODID, useMetadata = true, guiFactory = "committee.nova.skillsfirearms.GuiFactory",
+@Mod(modid = SkillsFirearms.MODID, useMetadata = true, guiFactory = "committee.nova.skillsfirearms.client.gui.GuiFactory",
         dependencies = "required-after:skillful@[0.0.3.6,)", acceptableRemoteVersions = "*")
 public class SkillsFirearms {
     public static final String MODID = "skillsfirearms";
     private static Logger LOGGER;
     private static final String DISPERSION = "dispersionSet";
-    private static final Map<String, Function<Entity, Entity>> strategies = new HashMap<>();
+    private static final Map<Class<?>, Function<Entity, Entity>> strategiesBullet = new HashMap<>();
 
     private static final String CGM = "com.mrcrayfish.guns.entity.EntityProjectile";
-    private static final String MW = "com.vicmatskiv.weaponlib.EntityProjectile";
+    private static final String VMW = "com.vicmatskiv.weaponlib.EntityProjectile";
+    private static final String MW = "com.modularwarfare.common.entity.EntityBullet";
     private static final String PUBG = "dev.toma.pubgmc.common.entity.EntityBullet";
     private static final String GVC = "gvclib.entity.EntityBBase";
+    private static final String AOA3 = "net.tslat.aoa3.entity.projectiles.gun.BaseBullet";
+    private static final String ALGANE_ORB = "xyz.phanta.algane.entity.EntityShockOrb";
 
-    private static final Set<Class<?>> SUPPORTED = new HashSet<>();
+    private static final String ALGANE_SRC = "xyz.phanta.algane.lasergun.damage.DamageHitscan";
+
+    private static final Set<Class<?>> SUPPORTED_INDIRECT = new HashSet<>();
+    private static final Set<Class<?>> SUPPORTED_SRC = new HashSet<>();
 
     private static final ResourceLocation FA_OLD = new ResourceLocation("skillscgm", "firearm");
     public static final ISkill FIREARM = new Skill(new ResourceLocation(MODID, "firearm"), 100, BossInfo.Color.BLUE, (int i) -> i * 200);
@@ -62,9 +72,10 @@ public class SkillsFirearms {
             LOGGER.info("Try registering cgm compatibility");
             try {
                 final Class<?> cgm = Class.forName(CGM);
+                SUPPORTED_INDIRECT.add(cgm);
                 final Method p = cgm.getDeclaredMethod("getShooter");
                 p.setAccessible(true);
-                strategies.put(CGM, e -> {
+                strategiesBullet.put(cgm, e -> {
                     try {
                         return (Entity) p.invoke(e);
                     } catch (IllegalAccessException | InvocationTargetException ex) {
@@ -72,7 +83,6 @@ public class SkillsFirearms {
                     }
                     return null;
                 });
-                SUPPORTED.add(cgm);
                 LOGGER.info("Successfully registered cgm compatibility!");
             } catch (ClassNotFoundException | NoSuchMethodException ignored) {
                 LOGGER.warn("Failed to register cgm compatibility...");
@@ -81,10 +91,11 @@ public class SkillsFirearms {
         if (CompatConfig.vmw) {
             LOGGER.info("Try registering VMW compatibility");
             try {
-                final Class<?> mw = Class.forName(MW);
-                final Method p = mw.getDeclaredMethod("getThrower");
+                final Class<?> vmw = Class.forName(VMW);
+                SUPPORTED_INDIRECT.add(vmw);
+                final Method p = vmw.getDeclaredMethod("getThrower");
                 p.setAccessible(true);
-                strategies.put(MW, e -> {
+                strategiesBullet.put(vmw, e -> {
                     try {
                         return (Entity) p.invoke(e);
                     } catch (IllegalAccessException | InvocationTargetException ex) {
@@ -92,19 +103,39 @@ public class SkillsFirearms {
                     }
                     return null;
                 });
-                SUPPORTED.add(mw);
                 LOGGER.info("Successfully registered VMW compatibility!");
             } catch (ClassNotFoundException | NoSuchMethodException ignored) {
                 LOGGER.error("Failed to register VMW compatibility...");
+            }
+        }
+        if (CompatConfig.modularWarfare) {
+            LOGGER.info("Try registering ModularWarfare compatibility");
+            try {
+                final Class<?> mw = Class.forName(MW);
+                SUPPORTED_INDIRECT.add(mw);
+                final Field f = mw.getSuperclass().getDeclaredField("field_70250_c");
+                f.setAccessible(true);
+                strategiesBullet.put(mw, e -> {
+                    try {
+                        return (Entity) f.get(e);
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered ModularWarfare compatibility!");
+            } catch (ClassNotFoundException | NoSuchFieldException ignored) {
+                LOGGER.error("Failed to register ModularWarfare compatibility...");
             }
         }
         if (CompatConfig.pubg) {
             LOGGER.info("Try registering PUBGMC compatibility");
             try {
                 final Class<?> pubg = Class.forName(PUBG);
+                SUPPORTED_INDIRECT.add(pubg);
                 final Method p = pubg.getDeclaredMethod("getShooter");
                 p.setAccessible(true);
-                strategies.put(PUBG, e -> {
+                strategiesBullet.put(pubg, e -> {
                     try {
                         return (Entity) p.invoke(e);
                     } catch (IllegalAccessException | InvocationTargetException ex) {
@@ -112,7 +143,6 @@ public class SkillsFirearms {
                     }
                     return null;
                 });
-                SUPPORTED.add(pubg);
                 LOGGER.info("Successfully registered PUBGMC compatibility!");
             } catch (ClassNotFoundException | NoSuchMethodException ignored) {
                 LOGGER.error("Failed to register PUBGMC compatibility...");
@@ -122,9 +152,10 @@ public class SkillsFirearms {
             LOGGER.info("Try registering compatibility for GVCLib dependents");
             try {
                 final Class<?> gvc = Class.forName(GVC);
+                SUPPORTED_INDIRECT.add(gvc);
                 final Method p = gvc.getDeclaredMethod("getThrower");
                 p.setAccessible(true);
-                strategies.put(GVC, e -> {
+                strategiesBullet.put(gvc, e -> {
                     try {
                         return (Entity) p.invoke(e);
                     } catch (IllegalAccessException | InvocationTargetException ex) {
@@ -132,10 +163,51 @@ public class SkillsFirearms {
                     }
                     return null;
                 });
-                SUPPORTED.add(gvc);
                 LOGGER.info("Successfully registered compatibility for GVCLib dependents!");
             } catch (ClassNotFoundException | NoSuchMethodException ignored) {
                 LOGGER.error("Failed to register compatibility for GVCLib dependents...");
+            }
+        }
+        if (CompatConfig.aoa3) {
+            LOGGER.info("Try registering compatibility for AOA3");
+            try {
+                final Class<?> aoa3 = Class.forName(AOA3);
+                SUPPORTED_INDIRECT.add(aoa3);
+                final Field f = aoa3.getSuperclass().getDeclaredField("func_85052_h");
+                f.setAccessible(true);
+                strategiesBullet.put(aoa3, e -> {
+                    try {
+                        return (Entity) f.get(e);
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered compatibility for AOA3!");
+            } catch (ClassNotFoundException | NoSuchFieldException ignored) {
+                LOGGER.error("Failed to register compatibility for AOA3...");
+            }
+        }
+        if (CompatConfig.algane) {
+            LOGGER.info("Try registering compatibility for algane");
+            try {
+                final Class<?> alganeSrc = Class.forName(ALGANE_SRC);
+                SUPPORTED_SRC.add(alganeSrc);
+                final Class<?> alganeOrb = Class.forName(ALGANE_ORB);
+                SUPPORTED_INDIRECT.add(alganeOrb);
+                final Field f = alganeOrb.getSuperclass().getDeclaredField("field_70235_a");
+                f.setAccessible(true);
+                strategiesBullet.put(alganeOrb, e -> {
+                    try {
+                        return (Entity) f.get(e);
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered compatibility for algane!");
+            } catch (ClassNotFoundException | NoSuchFieldException ignored) {
+                LOGGER.error("Failed to register compatibility for algane...");
             }
         }
     }
@@ -163,11 +235,18 @@ public class SkillsFirearms {
 
     @SubscribeEvent
     public void onDamageModifier(LivingHurtEvent event) {
-        if (!(event.getSource() instanceof EntityDamageSourceIndirect)) return;
-        final EntityDamageSourceIndirect s = (EntityDamageSourceIndirect) event.getSource();
-        if (!(s.getTrueSource() instanceof EntityPlayerMP)) return;
-        if (checkNotSupported(s.getImmediateSource())) return;
-        final EntityPlayerMP player = (EntityPlayerMP) s.getTrueSource();
+        EntityPlayerMP player = null;
+        final DamageSource src = event.getSource();
+        if ((src instanceof EntityDamageSourceIndirect)) {
+            final EntityDamageSourceIndirect s = (EntityDamageSourceIndirect) event.getSource();
+            final Entity e = s.getTrueSource();
+            if (!(e instanceof EntityPlayerMP)) return;
+            if (!checkBulletNotSupported(s.getImmediateSource())) player = (EntityPlayerMP) s.getTrueSource();
+        } else if (src instanceof EntityDamageSource) {
+            final EntityDamageSource s = (EntityDamageSource) src;
+            if (checkSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
+        }
+        if (player == null) return;
         final SkillInstance firearm = Utilities.getPlayerSkillStat(player, FIREARM);
         event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getCurrentLevel() - 10.0F) / 50.0F)));
         final EntityLivingBase target = event.getEntityLiving();
@@ -176,21 +255,31 @@ public class SkillsFirearms {
 
     @SubscribeEvent
     public void onKill(LivingDeathEvent event) {
-        if (!(event.getSource() instanceof EntityDamageSourceIndirect)) return;
-        final EntityDamageSourceIndirect s = (EntityDamageSourceIndirect) event.getSource();
-        if (!(s.getTrueSource() instanceof EntityPlayerMP)) return;
-        if (checkNotSupported(s.getImmediateSource())) return;
-        final EntityPlayerMP player = (EntityPlayerMP) s.getTrueSource();
+        EntityPlayerMP player = null;
+        final DamageSource src = event.getSource();
+        if ((src instanceof EntityDamageSourceIndirect)) {
+            final EntityDamageSourceIndirect s = (EntityDamageSourceIndirect) event.getSource();
+            final Entity e = s.getTrueSource();
+            if (!(e instanceof EntityPlayerMP)) return;
+            if (!checkBulletNotSupported(s.getImmediateSource())) player = (EntityPlayerMP) s.getTrueSource();
+        } else if (src instanceof EntityDamageSource) {
+            final EntityDamageSource s = (EntityDamageSource) src;
+            if (checkSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
+        }
+        if (player == null) return;
         Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, 5 + (int) (event.getEntityLiving().getMaxHealth() / 20.0));
     }
 
     @SubscribeEvent
     public void onProjectileSpawn(EntityJoinWorldEvent event) {
         final Entity bullet = event.getEntity();
-        if (checkNotSupported(bullet)) return;
-        final Function<Entity, Entity> fun = strategies.get(bullet.getClass().getName());
-        if (fun == null) return;
-        final Entity s = fun.apply(bullet);
+        if (checkBulletNotSupported(bullet)) return;
+        final AtomicReference<Function<Entity, Entity>> fun = new AtomicReference<>(e -> null);
+        strategiesBullet.forEach((c, f) -> {
+            if (c.isAssignableFrom(bullet.getClass())) fun.set(f);
+        });
+        final Entity s = fun.get().apply(bullet);
+        if (s == null) return;
         if (!(s instanceof EntityPlayerMP)) return;
         final EntityPlayerMP shooter = (EntityPlayerMP) s;
         final SkillInstance firearm = Utilities.getPlayerSkillStat(shooter, FIREARM);
@@ -206,10 +295,16 @@ public class SkillsFirearms {
         data.setBoolean(DISPERSION, true);
     }
 
-    private static boolean checkNotSupported(Entity direct) {
+    private static boolean checkBulletNotSupported(Entity direct) {
         if (direct == null) return true;
-        for (final Class<?> clazz : SUPPORTED) if (clazz.isAssignableFrom(direct.getClass())) return false;
+        for (final Class<?> clazz : SUPPORTED_INDIRECT) if (clazz.isAssignableFrom(direct.getClass())) return false;
         return true;
+    }
+
+    private static boolean checkSrcIsSupported(DamageSource src) {
+        if (src == null) return false;
+        for (final Class<?> clazz : SUPPORTED_SRC) if (clazz.isAssignableFrom(src.getClass())) return true;
+        return false;
     }
 
     @Config(modid = MODID)
@@ -223,6 +318,10 @@ public class SkillsFirearms {
         @Config.RequiresMcRestart
         public static boolean vmw = true;
 
+        @Config.Comment("Enable compat for Modular Warfare Mod")
+        @Config.RequiresMcRestart
+        public static boolean modularWarfare = true;
+
         @Config.Comment("Enable compat for PUBGMC")
         @Config.RequiresMcRestart
         public static boolean pubg = true;
@@ -230,5 +329,13 @@ public class SkillsFirearms {
         @Config.Comment("Enable compat for GVBLib dependents")
         @Config.RequiresMcRestart
         public static boolean gvc = true;
+
+        @Config.Comment("Enable compat for AOA3")
+        @Config.RequiresMcRestart
+        public static boolean aoa3 = true;
+
+        @Config.Comment("Enable compat for algane")
+        @Config.RequiresMcRestart
+        public static boolean algane = true;
     }
 }
