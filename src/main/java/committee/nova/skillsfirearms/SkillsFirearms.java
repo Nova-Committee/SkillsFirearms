@@ -294,6 +294,7 @@ public class SkillsFirearms {
                 final Class<?> pvzPea = Class.forName(PVZ_PEA);
                 SUPPORTED_BULLET.add(pvzPea);
                 final Method m = pvzPea.getDeclaredMethod("getThrower");
+                m.setAccessible(true);
                 strategiesBullet.put(pvzPea, e -> {
                     try {
                         return (Entity) m.invoke(e);
@@ -315,6 +316,7 @@ public class SkillsFirearms {
                 final Class<?> l2mBullet = Class.forName(L2M_BULLET);
                 SUPPORTED_BULLET.add(l2mBullet);
                 final Field f = l2mBullet.getDeclaredField("shooter");
+                f.setAccessible(true);
                 strategiesBullet.put(l2mBullet, e -> {
                     try {
                         return (Entity) f.get(e);
