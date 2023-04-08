@@ -18,7 +18,7 @@ apply plugin: 'net.minecraftforge.gradle'
 
 
 group = 'committee.nova'
-version = '1.1.5'
+version = '1.1.7'
 def mcVersion = "1.12.2"
 
 java {
@@ -116,6 +116,7 @@ dependencies {
     implementation fg.deobf("gvclib:gvclib:5.4.2")
     implementation fg.deobf("curse.maven:algane-333505:2934965")
     implementation fg.deobf("curse.maven:modularwarfare-350869:4426196")
+    implementation fg.deobf("curse.maven:matchlock-guns-324273:2786799")
     // Real mod deobf dependency examples - these get remapped to your current mappings
     // compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api") // Adds JEI API as a compile dependency
     // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}") // Adds the full JEI mod as a runtime dependency

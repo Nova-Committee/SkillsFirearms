@@ -49,12 +49,21 @@ public class SkillsFirearms {
     private static final String MW = "com.modularwarfare.common.entity.EntityBullet";
     private static final String PUBG = "dev.toma.pubgmc.common.entity.EntityBullet";
     private static final String GVC = "gvclib.entity.EntityBBase";
+    private static final String TECHGUN_ENTITY = "techguns.entities.projectiles.GenericProjectile";
+    private static final String MO = "matteroverdrive.entity.weapon.PlasmaBolt";
     private static final String AOA3 = "net.tslat.aoa3.entity.projectiles.gun.BaseBullet";
     private static final String ALGANE_ORB = "xyz.phanta.algane.entity.EntityShockOrb";
+    private static final String MATCHLOCK_GUN = "com.korallkarlsson.matchlockweapons.entities.Bullet";
+    private static final String PVZ_PEA = "com.hungteen.pvzmod.entities.bullets.EntityPea";
+    private static final String L2M_BULLET = "net.thecallunxz.left2mine.entities.projectiles.EntityProjectile";
 
+    private static final String TECHGUN_SRC = "techguns.damagesystem.TGDamageSource";
     private static final String ALGANE_SRC = "xyz.phanta.algane.lasergun.damage.DamageHitscan";
+    private static final String MW_FIXED_SRC = "committee.nova.mwdmgsrcfix.DamageSourceModular";
+    private static final String PVZ_SRC = "com.hungteen.pvzmod.damage.PVZDamageSource";
+    private static final String L2M_SRC = "net.thecallunxz.left2mine.entities.projectiles.DamageSourceShot";
 
-    private static final Set<Class<?>> SUPPORTED_INDIRECT = new HashSet<>();
+    private static final Set<Class<?>> SUPPORTED_BULLET = new HashSet<>();
     private static final Set<Class<?>> SUPPORTED_SRC = new HashSet<>();
 
     private static final ResourceLocation FA_OLD = new ResourceLocation("skillscgm", "firearm");
@@ -72,7 +81,7 @@ public class SkillsFirearms {
             LOGGER.info("Try registering cgm compatibility");
             try {
                 final Class<?> cgm = Class.forName(CGM);
-                SUPPORTED_INDIRECT.add(cgm);
+                SUPPORTED_BULLET.add(cgm);
                 final Method p = cgm.getDeclaredMethod("getShooter");
                 p.setAccessible(true);
                 strategiesBullet.put(cgm, e -> {
@@ -85,14 +94,14 @@ public class SkillsFirearms {
                 });
                 LOGGER.info("Successfully registered cgm compatibility!");
             } catch (ClassNotFoundException | NoSuchMethodException ignored) {
-                LOGGER.warn("Failed to register cgm compatibility...");
+                LOGGER.error("Failed to register cgm compatibility...");
             }
         }
         if (CompatConfig.vmw) {
             LOGGER.info("Try registering VMW compatibility");
             try {
                 final Class<?> vmw = Class.forName(VMW);
-                SUPPORTED_INDIRECT.add(vmw);
+                SUPPORTED_BULLET.add(vmw);
                 final Method p = vmw.getDeclaredMethod("getThrower");
                 p.setAccessible(true);
                 strategiesBullet.put(vmw, e -> {
@@ -112,7 +121,12 @@ public class SkillsFirearms {
             LOGGER.info("Try registering ModularWarfare compatibility");
             try {
                 final Class<?> mw = Class.forName(MW);
-                SUPPORTED_INDIRECT.add(mw);
+                SUPPORTED_BULLET.add(mw);
+                try {
+                    final Class<?> mwFixedSrc = Class.forName(MW_FIXED_SRC);
+                    SUPPORTED_SRC.add(mwFixedSrc);
+                } catch (ClassNotFoundException ignored) {
+                }
                 final Field f = mw.getSuperclass().getDeclaredField("field_70250_c");
                 f.setAccessible(true);
                 strategiesBullet.put(mw, e -> {
@@ -132,7 +146,7 @@ public class SkillsFirearms {
             LOGGER.info("Try registering PUBGMC compatibility");
             try {
                 final Class<?> pubg = Class.forName(PUBG);
-                SUPPORTED_INDIRECT.add(pubg);
+                SUPPORTED_BULLET.add(pubg);
                 final Method p = pubg.getDeclaredMethod("getShooter");
                 p.setAccessible(true);
                 strategiesBullet.put(pubg, e -> {
@@ -152,7 +166,7 @@ public class SkillsFirearms {
             LOGGER.info("Try registering compatibility for GVCLib dependents");
             try {
                 final Class<?> gvc = Class.forName(GVC);
-                SUPPORTED_INDIRECT.add(gvc);
+                SUPPORTED_BULLET.add(gvc);
                 final Method p = gvc.getDeclaredMethod("getThrower");
                 p.setAccessible(true);
                 strategiesBullet.put(gvc, e -> {
@@ -168,11 +182,53 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for GVCLib dependents...");
             }
         }
+        if (CompatConfig.techgun) {
+            LOGGER.info("Try registering compatibility for TechGun");
+            try {
+                final Class<?> techgunSrc = Class.forName(TECHGUN_SRC);
+                SUPPORTED_SRC.add(techgunSrc);
+                final Class<?> techgunEntity = Class.forName(TECHGUN_ENTITY);
+                SUPPORTED_BULLET.add(techgunEntity);
+                final Field f = techgunEntity.getDeclaredField("shooter");
+                f.setAccessible(true);
+                strategiesBullet.put(techgunEntity, e -> {
+                    try {
+                        return (Entity) f.get(e);
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered compatibility for TechGun!");
+            } catch (NoSuchFieldException | ClassNotFoundException ignored) {
+                LOGGER.error("Failed to register compatibility for TechGun...");
+            }
+        }
+        if (CompatConfig.matterOverdrive) {
+            LOGGER.info("Try registering compatibility for MatterOverdrive");
+            try {
+                final Class<?> mo = Class.forName(MO);
+                SUPPORTED_BULLET.add(mo);
+                final Field f = mo.getDeclaredField("shootingEntity");
+                f.setAccessible(true);
+                strategiesBullet.put(mo, e -> {
+                    try {
+                        return (Entity) f.get(e);
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered compatibility for MatterOverdrive!");
+            } catch (NoSuchFieldException | ClassNotFoundException ignored) {
+                LOGGER.error("Failed to register compatibility for MatterOverdrive...");
+            }
+        }
         if (CompatConfig.aoa3) {
             LOGGER.info("Try registering compatibility for AOA3");
             try {
                 final Class<?> aoa3 = Class.forName(AOA3);
-                SUPPORTED_INDIRECT.add(aoa3);
+                SUPPORTED_BULLET.add(aoa3);
                 final Field f = aoa3.getSuperclass().getDeclaredField("func_85052_h");
                 f.setAccessible(true);
                 strategiesBullet.put(aoa3, e -> {
@@ -189,12 +245,12 @@ public class SkillsFirearms {
             }
         }
         if (CompatConfig.algane) {
-            LOGGER.info("Try registering compatibility for algane");
+            LOGGER.info("Try registering compatibility for ALGANE");
             try {
                 final Class<?> alganeSrc = Class.forName(ALGANE_SRC);
                 SUPPORTED_SRC.add(alganeSrc);
                 final Class<?> alganeOrb = Class.forName(ALGANE_ORB);
-                SUPPORTED_INDIRECT.add(alganeOrb);
+                SUPPORTED_BULLET.add(alganeOrb);
                 final Field f = alganeOrb.getSuperclass().getDeclaredField("field_70235_a");
                 f.setAccessible(true);
                 strategiesBullet.put(alganeOrb, e -> {
@@ -205,9 +261,71 @@ public class SkillsFirearms {
                     }
                     return null;
                 });
-                LOGGER.info("Successfully registered compatibility for algane!");
+                LOGGER.info("Successfully registered compatibility for ALGANE!");
             } catch (ClassNotFoundException | NoSuchFieldException ignored) {
-                LOGGER.error("Failed to register compatibility for algane...");
+                LOGGER.error("Failed to register compatibility for ALGANE...");
+            }
+        }
+        if (CompatConfig.matchlockGuns) {
+            LOGGER.info("Try registering compatibility for Matchlock Guns");
+            try {
+                final Class<?> matchlock = Class.forName(MATCHLOCK_GUN);
+                SUPPORTED_BULLET.add(matchlock);
+                final Field f = matchlock.getDeclaredField("user");
+                f.setAccessible(true);
+                strategiesBullet.put(matchlock, e -> {
+                    try {
+                        return (Entity) f.get(e);
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered compatibility for Matchlock Guns!");
+            } catch (NoSuchFieldException | ClassNotFoundException ignored) {
+                LOGGER.error("Failed to register compatibility for Matchlock Guns...");
+            }
+        }
+        if (CompatConfig.pvz) {
+            LOGGER.info("Try registering compatibility for HungTeen's Plants vs Zombies Mod");
+            try {
+                final Class<?> pvzSrc = Class.forName(PVZ_SRC);
+                SUPPORTED_SRC.add(pvzSrc);
+                final Class<?> pvzPea = Class.forName(PVZ_PEA);
+                SUPPORTED_BULLET.add(pvzPea);
+                final Method m = pvzPea.getDeclaredMethod("getThrower");
+                strategiesBullet.put(pvzPea, e -> {
+                    try {
+                        return (Entity) m.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered compatibility for HungTeen's Plants vs Zombies Mod!");
+            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+                LOGGER.error("Failed to register compatibility for HungTeen's Plants vs Zombies Mod...");
+            }
+        }
+        if (CompatConfig.l2m) {
+            LOGGER.info("Try registering compatibility for Left 2 Mine");
+            try {
+                final Class<?> l2mSrc = Class.forName(L2M_SRC);
+                SUPPORTED_SRC.add(l2mSrc);
+                final Class<?> l2mBullet = Class.forName(L2M_BULLET);
+                SUPPORTED_BULLET.add(l2mBullet);
+                final Field f = l2mBullet.getDeclaredField("shooter");
+                strategiesBullet.put(l2mBullet, e -> {
+                    try {
+                        return (Entity) f.get(e);
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered compatibility for Left 2 Mine!");
+            } catch (NoSuchFieldException | ClassNotFoundException ignored) {
+                LOGGER.error("Failed to register compatibility for Left 2 Mine...");
             }
         }
     }
@@ -297,7 +415,7 @@ public class SkillsFirearms {
 
     private static boolean checkBulletNotSupported(Entity direct) {
         if (direct == null) return true;
-        for (final Class<?> clazz : SUPPORTED_INDIRECT) if (clazz.isAssignableFrom(direct.getClass())) return false;
+        for (final Class<?> clazz : SUPPORTED_BULLET) if (clazz.isAssignableFrom(direct.getClass())) return false;
         return true;
     }
 
@@ -326,16 +444,36 @@ public class SkillsFirearms {
         @Config.RequiresMcRestart
         public static boolean pubg = true;
 
-        @Config.Comment("Enable compat for GVBLib dependents")
+        @Config.Comment("Enable compat for GVCLib dependents")
         @Config.RequiresMcRestart
         public static boolean gvc = true;
+
+        @Config.Comment("Enable compat for TechGun")
+        @Config.RequiresMcRestart
+        public static boolean techgun = true;
+
+        @Config.Comment("Enable compat for MatterOverdrive")
+        @Config.RequiresMcRestart
+        public static boolean matterOverdrive = true;
 
         @Config.Comment("Enable compat for AOA3")
         @Config.RequiresMcRestart
         public static boolean aoa3 = true;
 
-        @Config.Comment("Enable compat for algane")
+        @Config.Comment("Enable compat for ALGANE")
         @Config.RequiresMcRestart
         public static boolean algane = true;
+
+        @Config.Comment("Enable compat for Matchlock Guns")
+        @Config.RequiresMcRestart
+        public static boolean matchlockGuns = true;
+
+        @Config.Comment("Enable compat for HungTeen's Plants vs Zombies Mod")
+        @Config.RequiresMcRestart
+        public static boolean pvz = true;
+
+        @Config.Comment("Enable compat for Left 2 Mine")
+        @Config.RequiresMcRestart
+        public static boolean l2m = true;
     }
 }
