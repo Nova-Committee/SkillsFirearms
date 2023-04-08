@@ -64,7 +64,8 @@ public class SkillsFirearms {
     private static final String L2M_SRC = "net.thecallunxz.left2mine.entities.projectiles.DamageSourceShot";
 
     private static final Set<Class<?>> SUPPORTED_BULLET = new HashSet<>();
-    private static final Set<Class<?>> SUPPORTED_SRC = new HashSet<>();
+    private static final Set<Class<?>> SUPPORTED_ENTITY_SRC = new HashSet<>();
+    private static final Map<Class<?>, Function<DamageSource, Entity>> SUPPORTED_GENERIC_SRC = new HashMap<>();
 
     private static final ResourceLocation FA_OLD = new ResourceLocation("skillscgm", "firearm");
     public static final ISkill FIREARM = new Skill(new ResourceLocation(MODID, "firearm"), 100, BossInfo.Color.BLUE, (int i) -> i * 200);
@@ -124,7 +125,7 @@ public class SkillsFirearms {
                 SUPPORTED_BULLET.add(mw);
                 try {
                     final Class<?> mwFixedSrc = Class.forName(MW_FIXED_SRC);
-                    SUPPORTED_SRC.add(mwFixedSrc);
+                    SUPPORTED_ENTITY_SRC.add(mwFixedSrc);
                 } catch (ClassNotFoundException ignored) {
                 }
                 final Field f = mw.getSuperclass().getDeclaredField("field_70250_c");
@@ -186,7 +187,7 @@ public class SkillsFirearms {
             LOGGER.info("Try registering compatibility for TechGun");
             try {
                 final Class<?> techgunSrc = Class.forName(TECHGUN_SRC);
-                SUPPORTED_SRC.add(techgunSrc);
+                SUPPORTED_ENTITY_SRC.add(techgunSrc);
                 final Class<?> techgunEntity = Class.forName(TECHGUN_ENTITY);
                 SUPPORTED_BULLET.add(techgunEntity);
                 final Field f = techgunEntity.getDeclaredField("shooter");
@@ -248,7 +249,7 @@ public class SkillsFirearms {
             LOGGER.info("Try registering compatibility for ALGANE");
             try {
                 final Class<?> alganeSrc = Class.forName(ALGANE_SRC);
-                SUPPORTED_SRC.add(alganeSrc);
+                SUPPORTED_ENTITY_SRC.add(alganeSrc);
                 final Class<?> alganeOrb = Class.forName(ALGANE_ORB);
                 SUPPORTED_BULLET.add(alganeOrb);
                 final Field f = alganeOrb.getSuperclass().getDeclaredField("field_70235_a");
@@ -290,10 +291,10 @@ public class SkillsFirearms {
             LOGGER.info("Try registering compatibility for HungTeen's Plants vs Zombies Mod");
             try {
                 final Class<?> pvzSrc = Class.forName(PVZ_SRC);
-                SUPPORTED_SRC.add(pvzSrc);
+                SUPPORTED_ENTITY_SRC.add(pvzSrc);
                 final Class<?> pvzPea = Class.forName(PVZ_PEA);
                 SUPPORTED_BULLET.add(pvzPea);
-                final Method m = pvzPea.getDeclaredMethod("getThrower");
+                final Method m = pvzPea.getSuperclass().getDeclaredMethod("getThrower");
                 m.setAccessible(true);
                 strategiesBullet.put(pvzPea, e -> {
                     try {
@@ -311,8 +312,6 @@ public class SkillsFirearms {
         if (CompatConfig.l2m) {
             LOGGER.info("Try registering compatibility for Left 2 Mine");
             try {
-                final Class<?> l2mSrc = Class.forName(L2M_SRC);
-                SUPPORTED_SRC.add(l2mSrc);
                 final Class<?> l2mBullet = Class.forName(L2M_BULLET);
                 SUPPORTED_BULLET.add(l2mBullet);
                 final Field f = l2mBullet.getDeclaredField("shooter");
@@ -325,8 +324,19 @@ public class SkillsFirearms {
                     }
                     return null;
                 });
+                final Class<?> l2mSrc = Class.forName(L2M_SRC);
+                final Method m = l2mSrc.getDeclaredMethod("getShooter");
+                m.setAccessible(true);
+                SUPPORTED_GENERIC_SRC.put(l2mSrc, d -> {
+                    try {
+                        return (Entity) m.invoke(d);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                });
                 LOGGER.info("Successfully registered compatibility for Left 2 Mine!");
-            } catch (NoSuchFieldException | ClassNotFoundException ignored) {
+            } catch (NoSuchFieldException | ClassNotFoundException | NoSuchMethodException ignored) {
                 LOGGER.error("Failed to register compatibility for Left 2 Mine...");
             }
         }
@@ -364,8 +374,8 @@ public class SkillsFirearms {
             if (!checkBulletNotSupported(s.getImmediateSource())) player = (EntityPlayerMP) s.getTrueSource();
         } else if (src instanceof EntityDamageSource) {
             final EntityDamageSource s = (EntityDamageSource) src;
-            if (checkSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
-        }
+            if (checkEntityDmgSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
+        } else player = getGenericSrcShooter(src);
         if (player == null) return;
         final SkillInstance firearm = Utilities.getPlayerSkillStat(player, FIREARM);
         event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getCurrentLevel() - 10.0F) / 50.0F)));
@@ -384,8 +394,8 @@ public class SkillsFirearms {
             if (!checkBulletNotSupported(s.getImmediateSource())) player = (EntityPlayerMP) s.getTrueSource();
         } else if (src instanceof EntityDamageSource) {
             final EntityDamageSource s = (EntityDamageSource) src;
-            if (checkSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
-        }
+            if (checkEntityDmgSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
+        } else player = getGenericSrcShooter(src);
         if (player == null) return;
         Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, 5 + (int) (event.getEntityLiving().getMaxHealth() / 20.0));
     }
@@ -421,10 +431,21 @@ public class SkillsFirearms {
         return true;
     }
 
-    private static boolean checkSrcIsSupported(DamageSource src) {
+    private static boolean checkEntityDmgSrcIsSupported(EntityDamageSource src) {
         if (src == null) return false;
-        for (final Class<?> clazz : SUPPORTED_SRC) if (clazz.isAssignableFrom(src.getClass())) return true;
+        for (final Class<?> clazz : SUPPORTED_ENTITY_SRC) if (clazz.isAssignableFrom(src.getClass())) return true;
         return false;
+    }
+
+    private static EntityPlayerMP getGenericSrcShooter(DamageSource src) {
+        if (src == null) return null;
+        for (final Map.Entry<Class<?>, Function<DamageSource, Entity>> entry : SUPPORTED_GENERIC_SRC.entrySet()) {
+            if (entry.getKey().isAssignableFrom(src.getClass())) {
+                final Entity e = entry.getValue().apply(src);
+                if (e instanceof EntityPlayerMP) return (EntityPlayerMP) e;
+            }
+        }
+        return null;
     }
 
     @Config(modid = MODID)
