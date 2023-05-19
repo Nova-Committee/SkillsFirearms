@@ -1,5 +1,6 @@
 package committee.nova.skillsfirearms;
 
+import com.google.common.collect.ImmutableList;
 import committee.nova.skillful.api.skill.ISkill;
 import committee.nova.skillful.impl.skill.SkillBuilder;
 import committee.nova.skillful.impl.skill.instance.SkillInstance;
@@ -54,6 +55,11 @@ public class SkillsFirearms {
 
     private static final String CGM = "com.mrcrayfish.guns.entity.ProjectileEntity";
     private static final String TAC = "com.tac.guns.entity.ProjectileEntity";
+    private static final String GRAE = "com.song.nuclear_craft.entities.AbstractAmmoEntity";
+    private static final List<String> DOOM = ImmutableList.of(
+            "mod.azure.doom.entity.projectiles.BulletEntity", "mod.azure.doom.entity.projectiles.ChaingunBulletEntity",
+            "mod.azure.doom.entity.projectiles.ShotgunShellEntity", "mod.azure.doom.entity.projectiles.EnergyCellEntity"
+    );
 
     public SkillsFirearms() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -75,8 +81,9 @@ public class SkillsFirearms {
                     return null;
                 });
                 LOGGER.info("Successfully registered cgm compatibility!");
-            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+            } catch (Exception e) {
                 LOGGER.error("Failed to register cgm compatibility...");
+                LOGGER.debug("Failure:", e);
             }
         }
         if (tac.get()) {
@@ -95,8 +102,51 @@ public class SkillsFirearms {
                     return null;
                 });
                 LOGGER.info("Successfully registered tac compatibility!");
-            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+            } catch (Exception e) {
                 LOGGER.error("Failed to register tac compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
+        if (grae.get()) {
+            LOGGER.info("Try registering grae compatibility");
+            try {
+                final Class<?> grae = Class.forName(GRAE);
+                SUPPORTED_BULLET.add(grae);
+                final Method p = grae.getMethod("func_234616_v_");
+                strategiesBullet.put(grae, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        ex.printStackTrace();
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered grae compatibility!");
+            } catch (Exception e) {
+                LOGGER.error("Failed to register grae compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
+        if (doom.get()) {
+            LOGGER.info("Try registering doom compatibility");
+            for (final String clzName : DOOM) {
+                try {
+                    final Class<?> doom = Class.forName(clzName);
+                    SUPPORTED_BULLET.add(doom);
+                    final Method p = doom.getMethod("func_234616_v_");
+                    strategiesBullet.put(doom, e -> {
+                        try {
+                            return (Entity) p.invoke(e);
+                        } catch (IllegalAccessException | InvocationTargetException ex) {
+                            ex.printStackTrace();
+                        }
+                        return null;
+                    });
+                    LOGGER.info("Successfully registered {} for doom compatibility!", clzName);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to register {} for doom compatibility...", clzName);
+                    LOGGER.debug("Failure:", e);
+                }
             }
         }
     }
@@ -189,12 +239,16 @@ public class SkillsFirearms {
         public static final ForgeConfigSpec COMMON_CONFIG;
         public static final ForgeConfigSpec.BooleanValue cgm;
         public static final ForgeConfigSpec.BooleanValue tac;
+        public static final ForgeConfigSpec.BooleanValue grae;
+        public static final ForgeConfigSpec.BooleanValue doom;
 
         static {
             final ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
             builder.comment("Skills:Firearms Compat Settings").push("general");
             cgm = builder.comment("Enable compat for MrCrayfish's Gun Mod and its dependents").define("cgm", true);
             tac = builder.comment("Enable compat for Timeless & Classics").define("tac", true);
+            grae = builder.comment("Enable compat for Guns, Rockets and Atomic Explosions").define("grae", true);
+            doom = builder.comment("Enable compat for MCDoom").define("doom", true);
             builder.pop();
             COMMON_CONFIG = builder.build();
         }
