@@ -1,0 +1,15 @@
+modLoader = "javafml"
+loaderVersion = "[36,)"
+license = "GNU GPL 3.0"
+[[mods]]
+modId = "skillsfirearms"
+version = "${file.jarVersion}"
+displayName = "Skills:Firearms"
+authors = "Tapio"
+description = ""
+[[dependencies.skillsfirearms]]
+modId = "skillful"
+mandatory = true
+versionRange = "*"
+ordering = "AFTER"
+side = "BOTH"
