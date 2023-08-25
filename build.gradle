@@ -18,7 +18,7 @@ apply plugin: 'net.minecraftforge.gradle'
 
 
 group = 'committee.nova'
-version = '1.1.7'
+version = '1.1.8'
 def mcVersion = "1.12.2"
 
 java {
@@ -108,15 +108,18 @@ dependencies {
     // that the dep is a ForgeGradle 'patcher' dependency, and its patches will be applied.
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2860'
-    implementation("committee.nova:skillful:0.0.3.6")
-    compileOnly fg.deobf("curse.maven:obfuscate-289380:2912288")
-    implementation fg.deobf("curse.maven:mcgltf-591547:4367036")
-    implementation fg.deobf("curse.maven:configuration-444699:3241921")
-    implementation fg.deobf("curse.maven:pubgmc-mod-297074:3285714")
-    implementation fg.deobf("gvclib:gvclib:5.4.2")
-    implementation fg.deobf("curse.maven:algane-333505:2934965")
-    implementation fg.deobf("curse.maven:modularwarfare-350869:4426196")
-    implementation fg.deobf("curse.maven:matchlock-guns-324273:2786799")
+    implementation("committee.nova.skillful.forge:skillful-1.12.2:0.0.3.9")
+    //compileOnly fg.deobf("curse.maven:obfuscate-289380:2912288")
+    //implementation fg.deobf("curse.maven:mcgltf-591547:4367036")
+    //implementation fg.deobf("curse.maven:configuration-444699:3241921")
+    //implementation fg.deobf("curse.maven:pubgmc-mod-297074:3285714")
+    //implementation fg.deobf("gvclib:gvclib:5.4.2")
+    //implementation fg.deobf("curse.maven:algane-333505:2934965")
+    //implementation fg.deobf("curse.maven:modularwarfare-350869:4426196")
+    //implementation fg.deobf("curse.maven:matchlock-guns-324273:2786799")
+    implementation fg.deobf("curse.maven:flans-mod-5-5-2-317310:3278090")
+    implementation fg.deobf("curse.maven:simple-parts-pack-for-flans-mod-409248:3195603")
+    implementation fg.deobf("curse.maven:modern-weapons-pack-for-flans-mod-317312:3260604")
     // Real mod deobf dependency examples - these get remapped to your current mappings
     // compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api") // Adds JEI API as a compile dependency
     // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}") // Adds the full JEI mod as a runtime dependency

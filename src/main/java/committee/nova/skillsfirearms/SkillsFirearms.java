@@ -62,6 +62,7 @@ public class SkillsFirearms {
     private static final String MW_FIXED_SRC = "committee.nova.mwdmgsrcfix.DamageSourceModular";
     private static final String PVZ_SRC = "com.hungteen.pvzmod.damage.PVZDamageSource";
     private static final String L2M_SRC = "net.thecallunxz.left2mine.entities.projectiles.DamageSourceShot";
+    private static final String FLAN_SRC = "com.flansmod.common.guns.EntityDamageSourceFlan";
 
     private static final Set<Class<?>> SUPPORTED_BULLET = new HashSet<>();
     private static final Set<Class<?>> SUPPORTED_ENTITY_SRC = new HashSet<>();
@@ -340,6 +341,16 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for Left 2 Mine...");
             }
         }
+        if (CompatConfig.flan) {
+            LOGGER.info("Try registering compatibility for Flan's Mod");
+            try {
+                final Class<?> flanSrc = Class.forName(FLAN_SRC);
+                SUPPORTED_ENTITY_SRC.add(flanSrc);
+                LOGGER.info("Successfully registered compatibility for Flan's Mod!");
+            } catch (ClassNotFoundException e) {
+                LOGGER.error("Failed to register compatibility for Flan's Mod...");
+            }
+        }
     }
 
     @SubscribeEvent
@@ -372,7 +383,8 @@ public class SkillsFirearms {
             final Entity e = s.getTrueSource();
             if (!(e instanceof EntityPlayerMP)) return;
             if (!checkBulletNotSupported(s.getImmediateSource())) player = (EntityPlayerMP) s.getTrueSource();
-        } else if (src instanceof EntityDamageSource) {
+        }
+        if (player == null && (src instanceof EntityDamageSource)) {
             final EntityDamageSource s = (EntityDamageSource) src;
             if (checkEntityDmgSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
         } else player = getGenericSrcShooter(src);
@@ -462,6 +474,10 @@ public class SkillsFirearms {
         @Config.Comment("Enable compat for Modular Warfare Mod")
         @Config.RequiresMcRestart
         public static boolean modularWarfare = true;
+
+        @Config.Comment("Enable compat for Flan's Mod")
+        @Config.RequiresMcRestart
+        public static boolean flan = true;
 
         @Config.Comment("Enable compat for PUBGMC")
         @Config.RequiresMcRestart
