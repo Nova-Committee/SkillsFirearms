@@ -79,7 +79,7 @@ public class SkillsFirearms {
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        if (CompatConfig.cgm) {
+        if (SFConfig.cgm) {
             LOGGER.info("Try registering cgm compatibility");
             try {
                 final Class<?> cgm = Class.forName(CGM);
@@ -99,7 +99,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register cgm compatibility...");
             }
         }
-        if (CompatConfig.vmw) {
+        if (SFConfig.vmw) {
             LOGGER.info("Try registering VMW compatibility");
             try {
                 final Class<?> vmw = Class.forName(VMW);
@@ -119,7 +119,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register VMW compatibility...");
             }
         }
-        if (CompatConfig.modularWarfare) {
+        if (SFConfig.modularWarfare) {
             LOGGER.info("Try registering ModularWarfare compatibility");
             try {
                 final Class<?> mw = Class.forName(MW);
@@ -144,7 +144,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register ModularWarfare compatibility...");
             }
         }
-        if (CompatConfig.pubg) {
+        if (SFConfig.pubg) {
             LOGGER.info("Try registering PUBGMC compatibility");
             try {
                 final Class<?> pubg = Class.forName(PUBG);
@@ -164,7 +164,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register PUBGMC compatibility...");
             }
         }
-        if (CompatConfig.gvc) {
+        if (SFConfig.gvc) {
             LOGGER.info("Try registering compatibility for GVCLib dependents");
             try {
                 final Class<?> gvc = Class.forName(GVC);
@@ -184,7 +184,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for GVCLib dependents...");
             }
         }
-        if (CompatConfig.techgun) {
+        if (SFConfig.techgun) {
             LOGGER.info("Try registering compatibility for TechGun");
             try {
                 final Class<?> techgunSrc = Class.forName(TECHGUN_SRC);
@@ -206,7 +206,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for TechGun...");
             }
         }
-        if (CompatConfig.matterOverdrive) {
+        if (SFConfig.matterOverdrive) {
             LOGGER.info("Try registering compatibility for MatterOverdrive");
             try {
                 final Class<?> mo = Class.forName(MO);
@@ -226,7 +226,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for MatterOverdrive...");
             }
         }
-        if (CompatConfig.aoa3) {
+        if (SFConfig.aoa3) {
             LOGGER.info("Try registering compatibility for AOA3");
             try {
                 final Class<?> aoa3 = Class.forName(AOA3);
@@ -246,7 +246,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for AOA3...");
             }
         }
-        if (CompatConfig.algane) {
+        if (SFConfig.algane) {
             LOGGER.info("Try registering compatibility for ALGANE");
             try {
                 final Class<?> alganeSrc = Class.forName(ALGANE_SRC);
@@ -268,7 +268,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for ALGANE...");
             }
         }
-        if (CompatConfig.matchlockGuns) {
+        if (SFConfig.matchlockGuns) {
             LOGGER.info("Try registering compatibility for Matchlock Guns");
             try {
                 final Class<?> matchlock = Class.forName(MATCHLOCK_GUN);
@@ -288,7 +288,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for Matchlock Guns...");
             }
         }
-        if (CompatConfig.pvz) {
+        if (SFConfig.pvz) {
             LOGGER.info("Try registering compatibility for HungTeen's Plants vs Zombies Mod");
             try {
                 final Class<?> pvzSrc = Class.forName(PVZ_SRC);
@@ -310,7 +310,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for HungTeen's Plants vs Zombies Mod...");
             }
         }
-        if (CompatConfig.l2m) {
+        if (SFConfig.l2m) {
             LOGGER.info("Try registering compatibility for Left 2 Mine");
             try {
                 final Class<?> l2mBullet = Class.forName(L2M_BULLET);
@@ -341,7 +341,7 @@ public class SkillsFirearms {
                 LOGGER.error("Failed to register compatibility for Left 2 Mine...");
             }
         }
-        if (CompatConfig.flan) {
+        if (SFConfig.flan) {
             LOGGER.info("Try registering compatibility for Flan's Mod");
             try {
                 final Class<?> flanSrc = Class.forName(FLAN_SRC);
@@ -390,9 +390,9 @@ public class SkillsFirearms {
         } else player = getGenericSrcShooter(src);
         if (player == null) return;
         final SkillInstance firearm = Utilities.getPlayerSkillStat(player, FIREARM);
-        event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getCurrentLevel() - 10.0F) / 50.0F)));
+        event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getCurrentLevel() - 10.0F) / 50.0F) * SFConfig.damageMultiplier));
         final EntityLivingBase target = event.getEntityLiving();
-        firearm.addXp(player, Math.max(1, (int) (event.getAmount() * 1.08 / target.width / target.height * target.getAIMoveSpeed() * (target instanceof EntityMob ? 1.0 : 0.25))));
+        firearm.addXp(player, Math.max(1, (int) (event.getAmount() * 1.08 / target.width / target.height * target.getAIMoveSpeed() * (target instanceof EntityMob ? 1.0 : 0.25) * SFConfig.damageXpMultiplier)));
     }
 
     @SubscribeEvent
@@ -409,7 +409,7 @@ public class SkillsFirearms {
             if (checkEntityDmgSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
         } else player = getGenericSrcShooter(src);
         if (player == null) return;
-        Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, 5 + (int) (event.getEntityLiving().getMaxHealth() / 20.0));
+        Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, (int) ((5 + event.getEntityLiving().getMaxHealth() / 20.0) * SFConfig.killXpMultiplier));
     }
 
     @SubscribeEvent
@@ -431,9 +431,10 @@ public class SkillsFirearms {
         if (data.getBoolean(DISPERSION)) return;
         final Random rand = shooter.getRNG();
         if (rand.nextInt(Math.max(dispersion, 11)) < 5) return;
-        bullet.motionX += dispersion * (rand.nextDouble() - 0.5) * 0.025;
-        bullet.motionY += dispersion * (rand.nextDouble() - 0.5) * 0.025;
-        bullet.motionZ += dispersion * (rand.nextDouble() - 0.5) * 0.025;
+        final double dispersionMultiplier = SFConfig.dispersionMultiplier;
+        bullet.motionX += dispersion * (rand.nextDouble() - 0.5) * dispersionMultiplier;
+        bullet.motionY += dispersion * (rand.nextDouble() - 0.5) * dispersionMultiplier;
+        bullet.motionZ += dispersion * (rand.nextDouble() - 0.5) * dispersionMultiplier;
         data.setBoolean(DISPERSION, true);
     }
 
@@ -461,8 +462,20 @@ public class SkillsFirearms {
     }
 
     @Config(modid = MODID)
-    @Config.LangKey("cfg.skillsfirearms.compat")
-    public static final class CompatConfig {
+    @Config.LangKey("cfg.skillsfirearms")
+    public static final class SFConfig {
+        @Config.Comment("Multiplier for dispersion")
+        public static double dispersionMultiplier = 0.025;
+
+        @Config.Comment("Multiplier for damage bonus decided by skill level")
+        public static float damageMultiplier = 1.0F;
+
+        @Config.Comment("Multiplier for xp gain after damaging an entity with a firearm")
+        public static float damageXpMultiplier = 1.0F;
+
+        @Config.Comment("Multiplier for xp gain after killing an entity with a firearm")
+        public static float killXpMultiplier = 1.0F;
+
         @Config.Comment("Enable compat for MrCrayfish's Guns Mod")
         @Config.RequiresMcRestart
         public static boolean cgm = true;

@@ -23,7 +23,7 @@ public class GuiFactory implements IModGuiFactory {
 
     @Override
     public GuiScreen createConfigGui(GuiScreen parentScreen) {
-        return new GuiConfig(parentScreen, ConfigElement.from(SkillsFirearms.CompatConfig.class).getChildElements(),
+        return new GuiConfig(parentScreen, ConfigElement.from(SkillsFirearms.SFConfig.class).getChildElements(),
                 SkillsFirearms.MODID, false, true, "Skills:Firearms Compat Settings");
     }
 
