@@ -166,9 +166,10 @@ public class SkillsFirearms {
         } else player = getGenericSrcShooter(src);
         if (player == null) return;
         final SkillInstance firearm = Utilities.getPlayerSkillStat(player, FIREARM);
-        event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getCurrentLevel() - 10.0F) / 50.0F)));
+        event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getCurrentLevel() - 10.0F) / 50.0F) * damageMultiplier.get().floatValue()));
         final LivingEntity target = event.getEntityLiving();
-        firearm.addXp(player, Math.max(1, (int) (event.getAmount() * 1.08 / target.getBbWidth() / target.getBbHeight() * target.getSpeed() * (target instanceof MobEntity ? 1.0 : 0.25))));
+        firearm.addXp(player, Math.max(1, (int) (event.getAmount() * 1.08 / target.getBbWidth() / target.getBbHeight()
+                * target.getSpeed() * (target instanceof MobEntity ? 1.0 : 0.25) * damageXpMultiplier.get())));
     }
 
     @SubscribeEvent
@@ -185,7 +186,7 @@ public class SkillsFirearms {
             if (checkEntityDmgSrcIsSupported(s)) player = (ServerPlayerEntity) s.getEntity();
         } else player = getGenericSrcShooter(src);
         if (player == null) return;
-        Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, 5 + (int) (event.getEntityLiving().getMaxHealth() / 20.0));
+        Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, (int) (CommonConfig.killXpMultiplier.get() * (5 + event.getEntityLiving().getMaxHealth() / 20.0)));
     }
 
     @SubscribeEvent
@@ -207,8 +208,9 @@ public class SkillsFirearms {
         if (data.getBoolean(DISPERSION)) return;
         final Random rand = shooter.getRandom();
         if (rand.nextInt(Math.max(dispersion, 11)) < 5) return;
-        bullet.setDeltaMovement(bullet.getDeltaMovement().add(dispersion * (rand.nextDouble() - 0.5) * 0.025,
-                dispersion * (rand.nextDouble() - 0.5) * 0.025, dispersion * (rand.nextDouble() - 0.5) * 0.025));
+        final double dispersionMultiplier = CommonConfig.dispersionMultiplier.get();
+        bullet.setDeltaMovement(bullet.getDeltaMovement().add(dispersion * (rand.nextDouble() - 0.5) * dispersionMultiplier,
+                dispersion * (rand.nextDouble() - 0.5) * dispersionMultiplier, dispersion * (rand.nextDouble() - 0.5) * dispersionMultiplier));
         data.putBoolean(DISPERSION, true);
     }
 
@@ -241,10 +243,24 @@ public class SkillsFirearms {
         public static final ForgeConfigSpec.BooleanValue tac;
         public static final ForgeConfigSpec.BooleanValue grae;
         public static final ForgeConfigSpec.BooleanValue doom;
+        public static final ForgeConfigSpec.DoubleValue dispersionMultiplier;
+        public static final ForgeConfigSpec.DoubleValue damageMultiplier;
+        public static final ForgeConfigSpec.DoubleValue damageXpMultiplier;
+        public static final ForgeConfigSpec.DoubleValue killXpMultiplier;
 
         static {
             final ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
-            builder.comment("Skills:Firearms Compat Settings").push("general");
+            builder.comment("Skills: Firearms General Settings").push("general");
+            dispersionMultiplier = builder.comment("Multiplier for dispersion")
+                    .defineInRange("dispersionMultiplier", .025, .0, 5.0);
+            damageMultiplier = builder.comment("Multiplier for damage bonus decided by skill level")
+                    .defineInRange("damageMultiplier", 1.0, .0, 100.0);
+            damageXpMultiplier = builder.comment("Multiplier for xp gain after damaging an entity with a firearm")
+                    .defineInRange("damageXpMultiplier", 1.0, .0, 1000.0);
+            killXpMultiplier = builder.comment("Multiplier for xp gain after killing an entity with a firearm")
+                    .defineInRange("killXpMultiplier", 1.0, .0, 1000.0);
+            builder.pop();
+            builder.comment("Skills: Firearms Compat Settings").push("compat");
             cgm = builder.comment("Enable compat for MrCrayfish's Gun Mod and its dependents").define("cgm", true);
             tac = builder.comment("Enable compat for Timeless & Classics").define("tac", true);
             grae = builder.comment("Enable compat for Guns, Rockets and Atomic Explosions").define("grae", true);

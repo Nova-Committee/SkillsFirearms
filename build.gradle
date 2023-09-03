@@ -4,7 +4,7 @@ plugins {
 
 
 group = 'committee.nova'
-version = '0.0.1'
+version = '0.0.2'
 
 java {
     archivesBaseName = 'SkillsFirearms-Forge-1.16.5'
