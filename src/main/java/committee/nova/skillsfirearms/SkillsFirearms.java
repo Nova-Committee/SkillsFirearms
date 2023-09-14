@@ -381,12 +381,13 @@ public class SkillsFirearms {
         if ((src instanceof EntityDamageSourceIndirect)) {
             final EntityDamageSourceIndirect s = (EntityDamageSourceIndirect) event.getSource();
             final Entity e = s.getTrueSource();
-            if (!(e instanceof EntityPlayerMP)) return;
-            if (!checkBulletNotSupported(s.getImmediateSource())) player = (EntityPlayerMP) s.getTrueSource();
+            if (!checkBulletNotSupported(s.getImmediateSource()) && e instanceof EntityPlayerMP)
+                player = (EntityPlayerMP) e;
         }
         if (player == null && (src instanceof EntityDamageSource)) {
             final EntityDamageSource s = (EntityDamageSource) src;
-            if (checkEntityDmgSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
+            if (checkEntityDmgSrcIsSupported(s) && s.getTrueSource() instanceof EntityPlayerMP)
+                player = (EntityPlayerMP) s.getTrueSource();
         } else player = getGenericSrcShooter(src);
         if (player == null) return;
         final SkillInstance firearm = Utilities.getPlayerSkillStat(player, FIREARM);
@@ -406,7 +407,8 @@ public class SkillsFirearms {
             if (!checkBulletNotSupported(s.getImmediateSource())) player = (EntityPlayerMP) s.getTrueSource();
         } else if (src instanceof EntityDamageSource) {
             final EntityDamageSource s = (EntityDamageSource) src;
-            if (checkEntityDmgSrcIsSupported(s)) player = (EntityPlayerMP) s.getTrueSource();
+            if (checkEntityDmgSrcIsSupported(s) && s.getTrueSource() instanceof EntityPlayerMP)
+                player = (EntityPlayerMP) s.getTrueSource();
         } else player = getGenericSrcShooter(src);
         if (player == null) return;
         Utilities.getPlayerSkillStat(player, FIREARM).addXp(player, (int) ((5 + event.getEntityLiving().getMaxHealth() / 20.0) * SFConfig.killXpMultiplier));
