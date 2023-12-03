@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "committee.nova.skillsfirearms.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "skillsfirearms.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
