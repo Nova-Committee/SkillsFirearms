@@ -15,7 +15,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -51,6 +51,8 @@ public class SkillsFirearms {
     private static final Map<Class<?>, Function<DamageSource, Entity>> SUPPORTED_GENERIC_SRC = new HashMap<>();
     private static final Map<Class<?>, Function<Entity, Entity>> strategiesBullet = new HashMap<>();
     private static final String CGM = "com.mrcrayfish.guns.entity.ProjectileEntity";
+    private static final String TAC = "com.tac.guns.entity.ProjectileEntity";
+    private static final String IE = "blusunrize.immersiveengineering.common.entities.IEProjectileEntity";
 
     public SkillsFirearms() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -77,6 +79,48 @@ public class SkillsFirearms {
                 LOGGER.debug("Failure:", e);
             }
         }
+        if (tac.get()) {
+            LOGGER.info("Try registering tac compatibility");
+            try {
+                final Class<?> tac = Class.forName(TAC);
+                SUPPORTED_BULLET.put(TAC, tac);
+                final Method p = tac.getDeclaredMethod("getShooter");
+                p.setAccessible(true);
+                strategiesBullet.put(tac, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        LOGGER.debug("Skills:Firearms failed to get the entity", ex);
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered tac compatibility!");
+            } catch (Exception e) {
+                LOGGER.error("Failed to register tac compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
+        if (ie.get()) {
+            LOGGER.info("Try registering ie compatibility");
+            try {
+                final Class<?> ie = Class.forName(IE);
+                SUPPORTED_BULLET.put(IE, ie);
+                final Method p = ie.getDeclaredMethod("getOwner");
+                p.setAccessible(true);
+                strategiesBullet.put(ie, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        LOGGER.debug("Skills:Firearms failed to get the entity", ex);
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered ie compatibility!");
+            } catch (Exception e) {
+                LOGGER.error("Failed to register ie compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
     }
 
     @SubscribeEvent
@@ -91,7 +135,7 @@ public class SkillsFirearms {
         player.getCapability(Skills.SKILLS_CAPABILITY).ifPresent(s -> {
             final SkillInstance firearm = s.getOrCreateSkill(FIREARM);
             event.setAmount(event.getAmount() * (1.0F + Math.max(.0F, (firearm.getLevel() - 10.0F) / 50.0F) * damageMultiplier.get().floatValue()));
-            final LivingEntity target = event.getEntity();
+            final LivingEntity target = event.getEntityLiving();
             firearm.changeXp(player, Math.max(1, (int) (event.getAmount() * 1.08 / target.getBbWidth() / target.getBbHeight()
                     * target.getSpeed() * (target instanceof Mob ? 1.0 : 0.25) * damageXpMultiplier.get())));
         });
@@ -108,12 +152,12 @@ public class SkillsFirearms {
         final ServerPlayer player = player0;
         player.getCapability(Skills.SKILLS_CAPABILITY).ifPresent(s -> {
             final SkillInstance firearm = s.getOrCreateSkill(FIREARM);
-            firearm.changeXp(player, (long) (killXpMultiplier.get() * (5 + event.getEntity().getMaxHealth() / 20.0)));
+            firearm.changeXp(player, (long) (killXpMultiplier.get() * (5 + event.getEntityLiving().getMaxHealth() / 20.0)));
         });
     }
 
     @SubscribeEvent
-    public void onProjectileSpawn(EntityJoinLevelEvent event) {
+    public void onProjectileSpawn(EntityJoinWorldEvent event) {
         final Entity bullet = event.getEntity();
         if (checkBulletNotSupported(bullet)) return;
         final AtomicReference<Function<Entity, Entity>> fun = new AtomicReference<>(e -> null);
@@ -169,6 +213,8 @@ public class SkillsFirearms {
     public static class SFConfig {
         public static final ForgeConfigSpec CFG;
         public static final ForgeConfigSpec.BooleanValue cgm;
+        public static final ForgeConfigSpec.BooleanValue tac;
+        public static final ForgeConfigSpec.BooleanValue ie;
         public static final ForgeConfigSpec.DoubleValue dispersionMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageXpMultiplier;
@@ -189,6 +235,10 @@ public class SkillsFirearms {
             builder.push("Compat");
             cgm = builder.comment("Enable compat for MrCrayfish's Gun Mod and its dependents")
                     .define("cgm", true);
+            tac = builder.comment("Enable compat for Timeless & Classics")
+                    .define("tac", true);
+            ie = builder.comment("Enable compat for Immersive Engineering")
+                    .define("ie", true);
             builder.pop();
             CFG = builder.build();
         }
