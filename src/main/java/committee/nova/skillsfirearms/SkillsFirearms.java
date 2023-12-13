@@ -51,6 +51,7 @@ public class SkillsFirearms {
     private static final Map<Class<?>, Function<DamageSource, Entity>> SUPPORTED_GENERIC_SRC = new HashMap<>();
     private static final Map<Class<?>, Function<Entity, Entity>> strategiesBullet = new HashMap<>();
     private static final String CGM = "com.mrcrayfish.guns.entity.ProjectileEntity";
+    private static final String IE = "blusunrize.immersiveengineering.common.entities.IEProjectileEntity";
 
     public SkillsFirearms() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -74,6 +75,27 @@ public class SkillsFirearms {
                 LOGGER.info("Successfully registered cgm compatibility!");
             } catch (Exception e) {
                 LOGGER.error("Failed to register cgm compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
+        if (ie.get()) {
+            LOGGER.info("Try registering ie compatibility");
+            try {
+                final Class<?> ie = Class.forName(IE);
+                SUPPORTED_BULLET.put(IE, ie);
+                final Method p = ie.getDeclaredMethod("getOwner");
+                p.setAccessible(true);
+                strategiesBullet.put(ie, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        LOGGER.debug("Skills:Firearms failed to get the entity", ex);
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered ie compatibility!");
+            } catch (Exception e) {
+                LOGGER.error("Failed to register ie compatibility...");
                 LOGGER.debug("Failure:", e);
             }
         }
@@ -169,6 +191,7 @@ public class SkillsFirearms {
     public static class SFConfig {
         public static final ForgeConfigSpec CFG;
         public static final ForgeConfigSpec.BooleanValue cgm;
+        public static final ForgeConfigSpec.BooleanValue ie;
         public static final ForgeConfigSpec.DoubleValue dispersionMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageXpMultiplier;
@@ -189,6 +212,8 @@ public class SkillsFirearms {
             builder.push("Compat");
             cgm = builder.comment("Enable compat for MrCrayfish's Gun Mod and its dependents")
                     .define("cgm", true);
+            ie = builder.comment("Enable compat for Immersive Engineering")
+                    .define("ie", true);
             builder.pop();
             CFG = builder.build();
         }
