@@ -22,6 +22,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import org.slf4j.Logger;
 
 import java.lang.reflect.InvocationTargetException;
@@ -52,6 +53,7 @@ public class SkillsFirearms {
     private static final Map<Class<?>, Function<Entity, Entity>> strategiesBullet = new HashMap<>();
     private static final String CGM = "com.mrcrayfish.guns.entity.ProjectileEntity";
     private static final String IE = "blusunrize.immersiveengineering.common.entities.IEProjectileEntity";
+    private static final String TACZ = "com.tacz.guns.entity.EntityKineticBullet";
 
     public SkillsFirearms() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -60,7 +62,7 @@ public class SkillsFirearms {
         if (cgm.get()) {
             LOGGER.info("Try registering cgm compatibility");
             try {
-                final Class<?> cgm = Class.forName(CGM);
+                final Class<?> cgm = Class.forName(CGM, false, this.getClass().getClassLoader());
                 SUPPORTED_BULLET.put(CGM, cgm);
                 final Method p = cgm.getDeclaredMethod("getShooter");
                 p.setAccessible(true);
@@ -81,7 +83,7 @@ public class SkillsFirearms {
         if (ie.get()) {
             LOGGER.info("Try registering ie compatibility");
             try {
-                final Class<?> ie = Class.forName(IE);
+                final Class<?> ie = Class.forName(IE, false, this.getClass().getClassLoader());
                 SUPPORTED_BULLET.put(IE, ie);
                 final Method p = ie.getDeclaredMethod("getOwner");
                 p.setAccessible(true);
@@ -96,6 +98,27 @@ public class SkillsFirearms {
                 LOGGER.info("Successfully registered ie compatibility!");
             } catch (Exception e) {
                 LOGGER.error("Failed to register ie compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
+        if (tacz.get()) {
+            LOGGER.info("Try registering tacz compatibility");
+            try {
+                final Class<?> tacz = Class.forName(TACZ, false, this.getClass().getClassLoader());
+                SUPPORTED_BULLET.put(TACZ, tacz);
+                final Method p = ObfuscationReflectionHelper.findMethod(tacz, "getOwner");
+                p.setAccessible(true);
+                strategiesBullet.put(tacz, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        LOGGER.debug("Skills:Firearms failed to get the entity", ex);
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered tacz compatibility!");
+            } catch (Exception e) {
+                LOGGER.error("Failed to register tacz compatibility...");
                 LOGGER.debug("Failure:", e);
             }
         }
@@ -192,6 +215,7 @@ public class SkillsFirearms {
         public static final ForgeConfigSpec CFG;
         public static final ForgeConfigSpec.BooleanValue cgm;
         public static final ForgeConfigSpec.BooleanValue ie;
+        public static final ForgeConfigSpec.BooleanValue tacz;
         public static final ForgeConfigSpec.DoubleValue dispersionMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageXpMultiplier;
@@ -214,6 +238,8 @@ public class SkillsFirearms {
                     .define("cgm", true);
             ie = builder.comment("Enable compat for Immersive Engineering")
                     .define("ie", true);
+            tacz = builder.comment("Enable compat for Timeless and Classics: Zero")
+                    .define("tacz", true);
             builder.pop();
             CFG = builder.build();
         }
