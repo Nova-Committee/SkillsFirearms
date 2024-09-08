@@ -54,6 +54,8 @@ public class SkillsFirearms {
     private static final String CGM = "com.mrcrayfish.guns.entity.ProjectileEntity";
     private static final String IE = "blusunrize.immersiveengineering.common.entities.IEProjectileEntity";
     private static final String TACZ = "com.tacz.guns.entity.EntityKineticBullet";
+    private static final String SCGUNS = "top.ribs.scguns.entity.projectile.ProjectileEntity";
+    private static final String JEG = "ttv.migami.jeg.entity.projectile.ProjectileEntity";
 
     public SkillsFirearms() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -62,11 +64,11 @@ public class SkillsFirearms {
         if (cgm.get()) {
             LOGGER.info("Try registering cgm compatibility");
             try {
-                final Class<?> cgm = Class.forName(CGM, false, this.getClass().getClassLoader());
-                SUPPORTED_BULLET.put(CGM, cgm);
-                final Method p = cgm.getDeclaredMethod("getShooter");
+                final Class<?> cgmClz = Class.forName(CGM, false, this.getClass().getClassLoader());
+                SUPPORTED_BULLET.put(CGM, cgmClz);
+                final Method p = cgmClz.getDeclaredMethod("getShooter");
                 p.setAccessible(true);
-                strategiesBullet.put(cgm, e -> {
+                strategiesBullet.put(cgmClz, e -> {
                     try {
                         return (Entity) p.invoke(e);
                     } catch (IllegalAccessException | InvocationTargetException ex) {
@@ -83,11 +85,11 @@ public class SkillsFirearms {
         if (ie.get()) {
             LOGGER.info("Try registering ie compatibility");
             try {
-                final Class<?> ie = Class.forName(IE, false, this.getClass().getClassLoader());
-                SUPPORTED_BULLET.put(IE, ie);
-                final Method p = ie.getDeclaredMethod("getOwner");
+                final Class<?> ieClz = Class.forName(IE, false, this.getClass().getClassLoader());
+                SUPPORTED_BULLET.put(IE, ieClz);
+                final Method p = ieClz.getDeclaredMethod("getOwner");
                 p.setAccessible(true);
-                strategiesBullet.put(ie, e -> {
+                strategiesBullet.put(ieClz, e -> {
                     try {
                         return (Entity) p.invoke(e);
                     } catch (IllegalAccessException | InvocationTargetException ex) {
@@ -104,11 +106,11 @@ public class SkillsFirearms {
         if (tacz.get()) {
             LOGGER.info("Try registering tacz compatibility");
             try {
-                final Class<?> tacz = Class.forName(TACZ, false, this.getClass().getClassLoader());
-                SUPPORTED_BULLET.put(TACZ, tacz);
-                final Method p = ObfuscationReflectionHelper.findMethod(tacz, "getOwner");
+                final Class<?> taczClz = Class.forName(TACZ, false, this.getClass().getClassLoader());
+                SUPPORTED_BULLET.put(TACZ, taczClz);
+                final Method p = ObfuscationReflectionHelper.findMethod(taczClz, "getOwner");
                 p.setAccessible(true);
-                strategiesBullet.put(tacz, e -> {
+                strategiesBullet.put(taczClz, e -> {
                     try {
                         return (Entity) p.invoke(e);
                     } catch (IllegalAccessException | InvocationTargetException ex) {
@@ -119,6 +121,48 @@ public class SkillsFirearms {
                 LOGGER.info("Successfully registered tacz compatibility!");
             } catch (Exception e) {
                 LOGGER.error("Failed to register tacz compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
+        if (scguns.get()) {
+            LOGGER.info("Try registering scguns compatibility");
+            try {
+                final Class<?> scgunsClz = Class.forName(SCGUNS, false, this.getClass().getClassLoader());
+                SUPPORTED_BULLET.put(SCGUNS, scgunsClz);
+                final Method p = scgunsClz.getDeclaredMethod("getShooter");
+                p.setAccessible(true);
+                strategiesBullet.put(scgunsClz, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        LOGGER.debug("Skills:Firearms failed to get the entity", ex);
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered scguns compatibility!");
+            } catch (Exception e) {
+                LOGGER.error("Failed to register scguns compatibility...");
+                LOGGER.debug("Failure:", e);
+            }
+        }
+        if (jeg.get()) {
+            LOGGER.info("Try registering jeg compatibility");
+            try {
+                final Class<?> jegClz = Class.forName(JEG, false, this.getClass().getClassLoader());
+                SUPPORTED_BULLET.put(JEG, jegClz);
+                final Method p = jegClz.getDeclaredMethod("getShooter");
+                p.setAccessible(true);
+                strategiesBullet.put(jegClz, e -> {
+                    try {
+                        return (Entity) p.invoke(e);
+                    } catch (IllegalAccessException | InvocationTargetException ex) {
+                        LOGGER.debug("Skills:Firearms failed to get the entity", ex);
+                    }
+                    return null;
+                });
+                LOGGER.info("Successfully registered jeg compatibility!");
+            } catch (Exception e) {
+                LOGGER.error("Failed to register jeg compatibility...");
                 LOGGER.debug("Failure:", e);
             }
         }
@@ -216,6 +260,8 @@ public class SkillsFirearms {
         public static final ForgeConfigSpec.BooleanValue cgm;
         public static final ForgeConfigSpec.BooleanValue ie;
         public static final ForgeConfigSpec.BooleanValue tacz;
+        public static final ForgeConfigSpec.BooleanValue scguns;
+        public static final ForgeConfigSpec.BooleanValue jeg;
         public static final ForgeConfigSpec.DoubleValue dispersionMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageMultiplier;
         public static final ForgeConfigSpec.DoubleValue damageXpMultiplier;
@@ -240,6 +286,10 @@ public class SkillsFirearms {
                     .define("ie", true);
             tacz = builder.comment("Enable compat for Timeless and Classics: Zero")
                     .define("tacz", true);
+            scguns = builder.comment("Enable compat for Scorched Guns 2")
+                    .define("scguns", true);
+            jeg = builder.comment("Enable compat for Just Enough Guns")
+                    .define("jeg", true);
             builder.pop();
             CFG = builder.build();
         }

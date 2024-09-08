@@ -158,7 +158,10 @@ dependencies {
     // The group id is ignored when searching -- in this case, it is "blank"
     // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
     implementation fg.deobf("curse.maven:sk1llful-843594:4921736")
-    implementation fg.deobf("curse.maven:timeless-and-classics-zero-1028108:${tacz_file_id}-sources-${tacz_src_id}")
+    compileOnly fg.deobf("curse.maven:timeless-and-classics-zero-1028108:${tacz_file_id}-sources-${tacz_src_id}")
+    compileOnly fg.deobf("curse.maven:scorched-guns-802940:${scguns_file_id}")
+    compileOnly fg.deobf("curse.maven:curios-309927:${curios_file_id}")
+    compileOnly fg.deobf("curse.maven:just-enough-guns-820727:${jeg_file_id}")
 
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
